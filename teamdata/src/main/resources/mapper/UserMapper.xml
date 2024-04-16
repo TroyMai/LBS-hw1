@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.team.demo.generator.dao.UserMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.team.demo.generator.entity.User">
+        <id column="id" property="id" />
+        <result column="username" property="username" />
+        <result column="teamname" property="teamname" />
+        <result column="distance" property="distance" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, username, teamname, distance,x,y
+    </sql>
+
+    <!--<update id="updateBalanceByIds">
+        UPDATE user SET distance = distance - #{meter} ${ew.customSqlSegment}
+    </update>
+
+    <update id="updateDistanceByIds" parameterType="java.lang.Double">
+        UPDATE user
+        SET distance = distance - #{meter}
+        WHERE id IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>-->
+
+    <update id="updateCoordinatesById">
+        UPDATE user
+        SET x = x-#{deltaX},
+            y = y-#{deltaY}
+        WHERE id = #{id}
+    </update>
+
+    <select id="queryUserByIds" resultType="com.team.demo.generator.entity.User">
+        SELECT *
+        FROM user
+        <if test="ids != null">
+            WHERE id IN
+            <foreach collection="ids" open="(" close=")" item="id" separator=",">
+                #{id}
+            </foreach>
+        </if>
+        LIMIT 100
+    </select>
+
+    <update id="updateUserByIds">
+        UPDATE user
+        SET distance = SQRT(POW(x - #{deltaX}, 2) + POW(y-#{deltaY}, 2))
+        <if test="ids != null">
+            WHERE id IN
+            <foreach collection="ids" open="(" close=")" item="id" separator=",">
+                #{id}
+            </foreach>
+        </if>
+        LIMIT 100
+    </update>
+
+    <select id="findById" resultType="com.team.demo.generator.entity.User">
+        SELECT * FROM user WHERE id = #{id}
+    </select>
+
+    <delete id="deleteById"  parameterType="java.lang.Integer">
+        delete from user where Id = #{id}
+    </delete>
+
+    <select id="countAll" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM user;
+    </select>
+
+
+    <insert id="reset">
+        INSERT INTO `user` (`username`, `teamname`, `distance`, `x`, `y`) VALUES
+                                                                              ('Eve', 'Team A', 25.5, -20, 23),
+                                                                              ('Frank', 'Team A', 21.8, 18, -22),
+                                                                              ('Grace', 'Team A', 23.2, -21, 19),
+                                                                              ('Helen', 'Team A', 24.5, -24, 22),
+                                                                              ('Ian', 'Team A', 22.9, 23, -23),
+                                                                              ('Jack', 'Team A', 23.7, -22, 24),
+                                                                              ('Karen', 'Team A', 24.1, 24, -23),
+                                                                              ('Liam', 'Team A', 23.3, -21, -23),
+                                                                              ('Alice', 'Team A', 23.5, 20, 21),
+                                                                              ('Bob', 'Team A', 22.1, 21, 22),
+                                                                              ('Charlie', 'Team A', 24.8, 22, 23),
+                                                                              ('Nancy', 'Team B', 23.9, -21, 21),
+                                                                              ('Oliver', 'Team B', 22.1, 22, -22),
+                                                                              ('Paul', 'Team B', 23.5, -23, 23),
+                                                                              ('Quinn', 'Team B', 24.2, 24, -24),
+                                                                              ('Rachel', 'Team B', 22.8, -21, -24),
+                                                                              ('Sam', 'Team B', 24.6, -19, 21),
+                                                                              ('Tina', 'Team B', 23.1, -23, 22),
+                                                                              ('Ursula', 'Team B', 22.4, -22, 21),
+                                                                              ('David', 'Team B', 23.4, 20, -21),
+                                                                              ('Emma', 'Team B', 24.3, 21, -22),
+                                                                              ('Fiona', 'Team B', 22.9, 22, -23),
+                                                                              ('Victor', 'Team C', 23.8, -24, 23),
+                                                                              ('Wendy', 'Team C', 24.9, 23, -24),
+                                                                              ('Xavier', 'Team C', 22.7, -22, 23),
+                                                                              ('Yvonne', 'Team C', 23.4, -21, -24),
+                                                                              ('Zach', 'Team C', 24.3, 17, -22),
+                                                                              ('Anna', 'Team C', 23.6, -21, -22),
+                                                                              ('Brian', 'Team C', 22.2, 23, 21),
+                                                                              ('Cathy', 'Team C', 21.9, -18, -24),
+                                                                              ('Harry', 'Team C', 24.7, 20, 20),
+                                                                              ('Ivy', 'Team C', 23.3, 21, 21),
+                                                                              ('John', 'Team C', 22.8, 20, 22);
+
+    </insert>
+
+
+    <!-- 清空用户表 -->
+    <update id="truncateUserTable">
+        TRUNCATE TABLE `user`
+    </update>
+
+    <insert id="saveWinner" parameterType="java.lang.String">
+        INSERT INTO `winner` (`gamename`, `teamname`, `time`) VALUES (#{gamename} , #{teamname} , #{time})
+    </insert>
+
+    <select id="findWinner" resultType="com.team.demo.generator.entity.Game">
+        SELECT * FROM winner;
+    </select>
+
+</mapper>
