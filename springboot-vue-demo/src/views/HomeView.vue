@@ -29,60 +29,65 @@
           <el-table-column prop="distance" label="Distance" sortable/>
         </el-table>
       </div>
-      <div style="padding: 10px; width: 40%; height:210px; display: flex; flex-direction: column; gap: 10px;align-items: center; justify-content: space-between;border-radius: 5px; box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.1)">
-      <el-button type="primary" size="large" style="width: 100%" @click="reset"
-                 :disabled="!isFormComplete || gameStarted">Start New Game
-      </el-button>
-      <!--        <el-button type="primary" @click="refresh">Refresh</el-button>-->
-      <el-form :model="gameData" :label-position="'top'" style="width: 100%" size="default">
-        <el-form-item label="Game Name">
-          <el-input v-model="gameData.gamename" placeholder="Enter game name" :disabled="gameStarted"></el-input>
-        </el-form-item>
-        <div style="display:flex; gap:10px; justify-content: space-between">
-          <el-form-item label="X">
-            <el-input v-model.number="gameData.x" placeholder="X coordinate" :disabled="gameStarted"></el-input>
+      <div
+          style="padding: 10px; width: 40%; height:210px; display: flex; flex-direction: column; gap: 10px;align-items: center; justify-content: space-between;border-radius: 5px; box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.1)">
+        <el-button type="primary" size="large" style="width: 100%" @click="reset"
+                   :disabled="!isFormComplete || gameStarted">Start New Game
+        </el-button>
+        <!--        <el-button type="primary" @click="refresh">Refresh</el-button>-->
+        <el-form :model="gameData" :label-position="'top'" style="width: 100%" size="default">
+          <el-form-item label="Game Name">
+            <el-input v-model="gameData.gamename" placeholder="Enter game name" :disabled="gameStarted"></el-input>
           </el-form-item>
-          <el-form-item label="Y">
-            <el-input v-model.number="gameData.y" placeholder="Y coordinate" :disabled="gameStarted"></el-input>
-          </el-form-item>
-        </div>
-      </el-form>
+          <div style="display:flex; gap:10px; justify-content: space-between">
+            <el-form-item label="X">
+              <el-input v-model.number="gameData.x" placeholder="X coordinate" :disabled="gameStarted"></el-input>
+            </el-form-item>
+            <el-form-item label="Y">
+              <el-input v-model.number="gameData.y" placeholder="Y coordinate" :disabled="gameStarted"></el-input>
+            </el-form-item>
+          </div>
+        </el-form>
+      </div>
     </div>
-  </div>
-  <div style="height: 700px; display: flex; gap:10px;">
-    <div style="width: 700px; height: 700px; border: 1px solid #ccc; position: relative">
-      <el-text class="mx-1" type="primary"
-               style="position: absolute; top: 10%; left: 10%;align-content: center;font-size: 40px">{{
-          winner
-        }}
-      </el-text>
-      <canvas ref="canvas" style="width: 100%; height: 100%"></canvas>
+    <div style="height: 700px; display: flex; gap:10px;">
+      <div style="width: 700px; height: 700px; border: 1px solid #ccc; position: relative">
+        <el-text class="mx-1" type="primary"
+                 style="position: absolute; top: 10%; left: 10%;align-content: center;font-size: 40px">{{
+            winner
+          }}
+        </el-text>
+        <canvas ref="canvas" style="width: 100%; height: 100%"></canvas>
+      </div>
+      <div style="flex: 1;height: 100%; overflow-y: auto; padding: 10px">
+        <el-timeline>
+          <el-timeline-item v-for="(game, index) in winnerlist"
+                            :key="index"
+                            :timestamp="game.time" center placement="top">
+            <el-card>
+              <h4>{{ game.gamename }} ({{ game.id }})</h4>
+              <p>{{ game.teamname }} win!</p>
+            </el-card>
+          </el-timeline-item>
+        </el-timeline>
+      </div>
     </div>
-    <div style="flex: 1;height: 100%; overflow-y: auto; padding: 10px">
-      <el-timeline>
-        <el-timeline-item v-for="(game, index) in winnerlist"
-                          :key="index"
-                          :timestamp="game.time" center placement="top">
-          <el-card>
-            <h4>{{ game.gamename }} ({{ game.id }})</h4>
-            <p>{{ game.teamname }} win!</p>
-          </el-card>
-        </el-timeline-item>
-      </el-timeline>
-    </div>
-  </div>
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
 import request from "../../utils/request";
+import SockJS from 'sockjs-client';
+import {Stomp} from '@stomp/stompjs';
 
 export default {
   name: 'HomeView',
   components: {},
   data() {
     return {
+      stompClient: null,
+      users: [],
       gameStarted: false,
       tableData: [],
       winner: '',
@@ -108,11 +113,52 @@ export default {
     this.refreshInterval = setInterval(() => {
       this.load('user/refresh')
     }, 1000)
+    this.connect();
   },
+  beforeDestroy() {
+    if (this.stompClient) {
+      this.stompClient.disconnect();
+    }
+  },
+
   methods: {
+    connect() {
+      const socket = new SockJS('http://localhost:9090/websocket'); // 根据实际后端部署调整 URL
+      this.stompClient = Stomp.over(socket);
+      this.stompClient.connect({}, () => {
+        this.onConnected();
+      }, error => {
+        console.error('Connection error:', error);
+      });
+    },
+    onConnected() {
+      // // 订阅服务器发送的用户列表
+      // this.stompClient.subscribe('/topic/userList', message => {
+      //   this.users = JSON.parse(message.body);
+      //   console.log(this.users)
+      // });
+      // 订阅服务器发送的获胜信息
+      this.stompClient.subscribe('/topic/getWinner', message => {
+        this.winner = message.body
+        if (this.winner != 'no one win') {
+          this.refreshInterval = clearInterval(this.refreshInterval)
+          this.gameStarted = false
+          this.loadlog()
+        }
+        // 处理获胜信息
+        // ...
+      });
+      // // 请求用户列表
+      // this.requestUserList();
+    },
+    // requestUserList() {
+    //   this.stompClient.send("/app/user/getUserList", {}, {});
+    // },
     filterTeam(value, row) {
       return row.teamname === value
     },
+    // },
+    // methods: {
     load(url) {
       request.get(url).then(res => {
         res.forEach((user) => {
@@ -121,15 +167,17 @@ export default {
           user.distance = parseFloat(user.distance.toFixed(2))
         })
         this.tableData = res
-        request.get('user/getWinner').then(winner => {
-          this.winner = winner
-          this.drawMap(this.tableData, this.gameData);
-          if (this.winner != 'no one win') {
-            this.refreshInterval = clearInterval(this.refreshInterval)
-            this.gameStarted = false
-            this.loadlog()
-          }
-        })
+        this.stompClient.send("/app/user/getWinner", {}, {});
+        this.drawMap(this.tableData, this.gameData);
+        // request.get('user/getWinner').then(winner => {
+        //   this.winner = winner
+        //   this.drawMap(this.tableData, this.gameData);
+        //   if (this.winner != 'no one win') {
+        //     this.refreshInterval = clearInterval(this.refreshInterval)
+        //     this.gameStarted = false
+        //     this.loadlog()
+        //   }
+        // })
       })
     },
     drawMap(tableData, gameData) {

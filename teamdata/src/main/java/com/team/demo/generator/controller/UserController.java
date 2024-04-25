@@ -27,18 +27,19 @@ import java.util.*;
  * @author ky
  * @since 2024年04月08日
  */
+@CrossOrigin
 @RestController
 @RequestMapping("/user")
 public class UserController {
 
     static Map<Integer, User> users = Collections.synchronizedMap(new HashMap<>());
 
-    List<Team> userTeam = new ArrayList<>();
+    static List<Team> userTeam = new ArrayList<>();
 
-    String gameName = "unknown";
+    static String gameName = "unknown";
 
-    Integer f_x = 0;
-    Integer f_y = 0;
+    static Integer f_x = 0;
+    static Integer f_y = 0;
 
     boolean have = false;
 
@@ -250,6 +251,7 @@ public class UserController {
                     userMapper.saveWinner(team.getTeamName(),formattedDateTime,gameName);
                     have=true;
                 }
+
 
                 return team.getTeamName()+" win!";
             }
